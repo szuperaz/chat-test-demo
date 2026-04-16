@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { StreamChat, Channel, MessageResponse, Event } from "stream-chat";
+import { StreamChat, Channel, MessageResponse, Event, LocalMessage } from "stream-chat";
 
 const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY!;
 
@@ -14,7 +14,7 @@ interface ChatMessage {
   force_moderation: boolean;
 }
 
-function toMessage(msg: MessageResponse): ChatMessage {
+function toMessage(msg: MessageResponse | LocalMessage): ChatMessage {
   return {
     id: msg.id,
     text: msg.text || "",
@@ -100,8 +100,8 @@ export default function ChatPage() {
     if (!activeChannel) return;
 
     const loadMessages = async () => {
-      const state = await activeChannel.watch();
-      setMessages((state.messages || []).map(toMessage));
+      await activeChannel.watch();
+      setMessages((activeChannel.state.messages || []).map(toMessage));
     };
 
     loadMessages();
@@ -110,7 +110,7 @@ export default function ChatPage() {
       if (event.message) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === event.message!.id)) return prev;
-          return [...prev, toMessage(event.message as MessageResponse)];
+          return (activeChannel.state.messages || []).map(toMessage) || [];
         });
       }
     };
